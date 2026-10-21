@@ -2,7 +2,6 @@ package main
 
 import (
 	"database/sql"
-	"fmt"
 )
 
 type ParcelStore struct {
@@ -127,53 +126,34 @@ func (s ParcelStore) SetStatus(number int, status string) error {
 	return nil
 }
 
-const selectSQL = `SELECT status FROM parcel WHERE number = :number`
-const updateAddressSQL = `UPDATE parcel SET address = :address WHERE number = :number`
+const updateAddressSQL = `UPDATE parcel SET address = :address WHERE number = :number AND status = :status`
 
 func (s ParcelStore) SetAddress(number int, address string) error {
 	// реализуйте обновление адреса в таблице parcel
 	// менять адрес можно только если значение статуса registered
 
-	var status string
-
-	row := s.db.QueryRow(selectSQL, sql.Named("number", number))
-	err := row.Scan(&status)
-	if err == sql.ErrNoRows {
-		return err
-	}
-
-	if status != ParcelStatusRegistered {
-		return fmt.Errorf("Failed to change the address: parcel not registered.")
-	}
-
-	_, err = s.db.Exec(updateAddressSQL,
+	_, err := s.db.Exec(updateAddressSQL,
 		sql.Named("address", address),
 		sql.Named("number", number),
+		sql.Named("status", ParcelStatusRegistered),
 	)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
 
-const deleteParcelSQL = `DELETE FROM parcel WHERE number = :number`
+const deleteParcelSQL = `DELETE FROM parcel WHERE number = :number AND status = :status`
 
 func (s ParcelStore) Delete(number int) error {
 	// реализуйте удаление строки из таблицы parcel
 	// удалять строку можно только если значение статуса registered
 
-	var status string
-
-	row := s.db.QueryRow(selectSQL, sql.Named("number", number))
-
-	err := row.Scan(&status)
-	if err == sql.ErrNoRows {
-		return err
-	}
-
-	if status != ParcelStatusRegistered {
-		return fmt.Errorf("Failed to delete the parcel: parcel not registered.")
-	}
-
-	_, err = s.db.Exec(deleteParcelSQL, sql.Named("number", number))
+	_, err := s.db.Exec(deleteParcelSQL,
+		sql.Named("number", number),
+		sql.Named("status", ParcelStatusRegistered),
+	)
 	if err != nil {
 		return err
 	}
